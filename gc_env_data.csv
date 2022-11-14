@@ -1,5 +1,4 @@
 Date,Daily_Mean_Temp_Air,Daily_StdDev_Temp_Air,Daily_SE_Temp_Air,Daily_Max_Temp_Air,Daily_Min_Max_Temp_Air,Daily_Mean_Baro_Pressure,Daily_Mean_Wind_Speed,Daily_VecAvg_Wind_Direction,Daily_Mean_Total_PAR,Daily_Mean_Humidity
-yyyy-mm-dd,°C,°C,°C,°C,°C,mbar,m/s,degrees,mmoles/m^2,%
 10/16/2022,19.2712,5.4469,0.55592,28.078,13.661,1018.34,1.496,94.6307,389.75,75.0156
 10/17/2022,22.7656,2.8881,0.29477,27.628,18.839,1012.17,3.8094,228.1729,286.521,80.0031
 10/18/2022,19.5636,2.7263,0.27825,23.989,15.472,1008.83,4.7154,299.1531,392.375,61.0813
