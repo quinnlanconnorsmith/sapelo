@@ -246,3 +246,86 @@ summary(bc_model_final)
 #MD is highly not sig dif 
 #Need to fix air temp?
 
+var_rep_resid <- VarCorr(bc_model_final)
+var_rep <- as.numeric(var_rep_resid[1])
+var_resid <- as.numeric(var_rep_resid[2])
+
+var_rep/(var_rep + var_resid)
+
+#Correlation between observations is low (0.15)
+
+
+
+#Now lets try it for burrow diameter 
+model2 <- lm(mean_burrow_diameter~replicate, data=gc_mod_df)
+summary(model2)
+plot(model2, ask=F)
+
+model6 <-lm(mean_burrow_diameter~treatment + mean_air_temp + treatment*mean_air_temp, data=gc_mod_df)
+summary(model6)
+plot(gc_mod_df$replicate, residuals(model6, type='pearson'))
+
+model7 <- lme(mean_burrow_diameter~treatment + mean_air_temp + treatment*mean_air_temp, random= ~1|replicate, method = 'REML', data=gc_mod_df)
+summary(model7)
+plot(model7)
+
+gls_model2 <- gls(mean_burrow_diameter~treatment + mean_air_temp + treatment*mean_air_temp, data=gc_mod_df)
+anova(gls_model2, model7)
+#So the random effect can be kept! 
+#Checking standardized residuals and fitted values 
+
+model7_residuals <- residuals(model7, type='pearson')
+model7_fitted <- fitted.values(model7)
+plot(model7_fitted,model7_residuals)
+abline(h=0)
+plot(model7_residuals~treatment, data=gc_mod_df)
+abline(h=0)
+plot(model7_residuals~mean_air_temp, data=gc_mod_df)
+abline(h=0)
+plot(model7_residuals~replicate, data=gc_mod_df)
+abline(h=0)
+
+#Refit model with ML and drop interaction 
+model8 <- lme(mean_burrow_diameter~treatment + mean_air_temp + treatment*mean_air_temp, random= ~1|replicate, method = 'ML', data=gc_mod_df)
+model9 <- lme(mean_burrow_diameter~treatment + mean_air_temp, random= ~1|replicate, method = 'ML', data=gc_mod_df)
+anova(model8,model9)
+#So the interaction term can be dropped 
+
+model10 <- lme(mean_burrow_diameter~treatment + mean_air_temp, random= ~1|replicate, method = 'ML', data=gc_mod_df)
+model10_droptreat <- lme(mean_burrow_diameter~mean_air_temp, random= ~1|replicate, method = 'ML', data=gc_mod_df)
+model10_droptemp <- lme(mean_burrow_diameter~treatment, random= ~1|replicate, method = 'ML', data=gc_mod_df)
+
+summary(model10)
+summary(model10_droptreat)
+summary(model10_droptemp)
+
+anova(model10,model10_droptemp)
+anova(model10,model10_droptreat)
+#So dropping treatment is actually more parsimonious  
+
+summary(model10)
+
+bd_model_final <-lme(burrow_count~ mean_air_temp, random= ~1|replicate, method = 'REML', data=gc_mod_df)
+hist(residuals(bd_model_final))
+bd_final_residuals <-residuals(bd_model_final, type='pearson')
+bd_final_fitted <-fitted.values(bd_model_final)
+#Checking assumptions 
+plot(bd_final_fitted,bd_final_residuals)
+abline(h=0)
+
+#The rest 
+
+plot(bd_final_residuals~mean_air_temp, data=gc_mod_df)
+abline(h=0)
+plot(bd_final_residuals~replicate, data=gc_mod_df)
+abline(h=0)
+
+summary(bd_model_final)
+#Air temp is significant 
+
+bd_var_rep_resid <- VarCorr(bd_model_final)
+bd_var_rep <- as.numeric(bd_var_rep_resid[1])
+bd_var_resid <- as.numeric(bd_var_rep_resid[2])
+
+bd_var_rep/(bd_var_rep + bd_var_resid)
+#Correlation is low (0.12)
