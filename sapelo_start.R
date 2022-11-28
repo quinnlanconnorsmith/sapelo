@@ -3,6 +3,14 @@ library(tidyverse)
 library(lubridate)
 library(RColorBrewer)
 library(wesanderson)
+library(nlme)
+library(leaflet)
+library(lme4)
+
+b_d <- gc_count_dia$mean_burrow_diameter
+hist(b_d)
+b_c <- gc_count_dia$burrow_count
+hist(b_c)
 
 ggplot(data=gc_graph_data) +
   geom_point(mapping = aes(x = date, y = mean_burrow_count_total, color=treatment)) +
@@ -101,21 +109,54 @@ ggplot() +
   guides(color=guide_legend(title="Treatment"))+
   scale_color_brewer(palette="Set1")
 
+#Making maps! 
+
+gc_sites_map <- read.csv("gc_sites_fix.csv", header=T)
+
+gc_sapelo_22 <- leaflet(data = gc_sites_map) %>% 
+  addTiles(group="Map") %>%
+  addProviderTiles("Esri.WorldImagery", group = "Satellite") %>%
+  addCircleMarkers(~Longitude, ~Latitude, popup = ~as.character(Site), radius=1, fillOpacity=0.9, color="blue")
+gc_sapelo_22
+
+
+
+
+
 #Modeling below 
+lm <- lm(burrow_count~treatment, data=gc_glmm)
 
+summary(lm)
+plot(lm)
 
+mlme1 <- lme(burrow_count~treatment, random=~1 | mean_air_temp, data=gc_glmm)
 
+summary(mlme1)
+plot(mlme1)
 
+mlme2 <- lme(mean_burrow_diameter~treatment, random=~1 | mean_air_temp, data=gc_glmm)
 
+summary(mlme2)
+plot(mlme2)
 
+mlme3 <- lme(burrow_count~treatment, random=~1 | set, data=gc_glmm)
 
+summary(mlme3)
+plot(mlme3)
 
+glmm <- glmer(burrow_count~treatment + (1|mean_air_temp), data=gc_glmm)
 
+summary(glmm)
 
+#Stepwise modeling 
 
+mod1 <- lm(burrow_count~treatment, data=gc_glmm)
 
+summary(mod1)
+plot(mod1, ask=F)
 
-[which(gc_count_dia$mean_burrow_diameter>0)]
+#treatment*air temp 
+#replicate as a RE 
 
 
 #ggplot(data=WAEPV, aes(x = factor(Year), y = Estimate)) +
