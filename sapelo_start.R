@@ -6,6 +6,17 @@ library(wesanderson)
 library(nlme)
 library(leaflet)
 library(lme4)
+#ggplot(data=WAEPV, aes(x = factor(Year), y = Estimate)) +
+#  ylim(0,100000) +
+#  geom_boxplot(outlier.size=2, outlier.shape=21)+
+#  theme_bw(base_size = 16) +
+#  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+#        panel.background = element_blank(), axis.line = element_line(colour = "black"))+
+#  labs(y=bquote('Home Range'~ (m^2)), x="Year") +
+#  geom_jitter(data=WAEPP, width=0.10)
+
+
+#### Visual Graphs ####
 
 b_d <- gc_count_dia$mean_burrow_diameter
 hist(b_d)
@@ -109,7 +120,8 @@ ggplot() +
   guides(color=guide_legend(title="Treatment"))+
   scale_color_brewer(palette="Set1")
 
-#Making maps! 
+#### Maps ####
+
 
 gc_sites_map <- read.csv("gc_sites_fix.csv", header=T)
 
@@ -121,49 +133,116 @@ gc_sapelo_22
 
 
 
+####Model Play####
 
 
 #Modeling below 
 lm <- lm(burrow_count~treatment, data=gc_glmm)
-
 summary(lm)
 plot(lm)
-
 mlme1 <- lme(burrow_count~treatment, random=~1 | mean_air_temp, data=gc_glmm)
-
 summary(mlme1)
 plot(mlme1)
-
 mlme2 <- lme(mean_burrow_diameter~treatment, random=~1 | mean_air_temp, data=gc_glmm)
-
 summary(mlme2)
 plot(mlme2)
-
 mlme3 <- lme(burrow_count~treatment, random=~1 | set, data=gc_glmm)
-
 summary(mlme3)
 plot(mlme3)
-
 glmm <- glmer(burrow_count~treatment + (1|mean_air_temp), data=gc_glmm)
-
 summary(glmm)
 
 #Stepwise modeling 
-
-mod1 <- lm(burrow_count~treatment, data=gc_glmm)
-
+mod1 <- lm(burrow_count~treatment, data=gc_mod_df)
 summary(mod1)
 plot(mod1, ask=F)
-
 #treatment*air temp 
 #replicate as a RE 
 
 
-#ggplot(data=WAEPV, aes(x = factor(Year), y = Estimate)) +
-#  ylim(0,100000) +
-#  geom_boxplot(outlier.size=2, outlier.shape=21)+
-#  theme_bw(base_size = 16) +
-#  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-#        panel.background = element_blank(), axis.line = element_line(colour = "black"))+
-#  labs(y=bquote('Home Range'~ (m^2)), x="Year") +
-#  geom_jitter(data=WAEPP, width=0.10)
+#### Big Models ####
+
+
+#Following bee code 
+gc_mod_df <- read_csv('gc_glmm.csv') %>% 
+  mutate(replicate = as.factor(replicate),
+         treatment= as.factor(treatment))
+
+model1 <- lm(burrow_count~replicate, data=gc_mod_df)
+summary(model1)
+plot(model1, ask=F)
+#Varaince of burrow count appears homogenous among replicates 
+model2 <- lm(mean_burrow_diameter~replicate, data=gc_mod_df)
+summary(model2)
+plot(model2, ask=F)
+
+#Focus on burrow count for now 
+model1.5 <- lm(burrow_count~replicate+mean_air_temp, data=gc_mod_df)
+anova(model1, model1.5)
+
+model2.5 <-lm(burrow_count~treatment + mean_air_temp + treatment*mean_air_temp, data=gc_mod_df)
+summary(model2.5)
+plot(gc_mod_df$replicate, residuals(model2.5, type='pearson'))
+
+model3 <- lme(burrow_count~treatment + mean_air_temp + treatment*mean_air_temp, random= ~1|replicate, method = 'REML', data=gc_mod_df)
+summary(model3)
+plot(model3)
+
+gls_model1 <- gls(burrow_count~treatment + mean_air_temp + treatment*mean_air_temp, data=gc_mod_df)
+anova(gls_model1, model3)
+#So the random effect can be kept! 
+#Checking standardized residials and fitted values 
+
+model3_residuals <- residuals(model3, type='pearson')
+model3_fitted <- fitted.values(model3)
+plot(model3_fitted,model3_residuals)
+abline(h=0)
+plot(model3_residuals~treatment, data=gc_mod_df)
+abline(h=0)
+plot(model3_residuals~mean_air_temp, data=gc_mod_df)
+abline(h=0)
+plot(model3_residuals~replicate, data=gc_mod_df)
+abline(h=0)
+
+#Refit model with ML and drop interaction 
+model4 <- lme(burrow_count~treatment + mean_air_temp + treatment*mean_air_temp, random= ~1|replicate, method = 'ML', data=gc_mod_df)
+model5 <- lme(burrow_count~treatment + mean_air_temp, random= ~1|replicate, method = 'ML', data=gc_mod_df)
+anova(model4,model5)
+#So the interaction term can be dropped 
+
+model5 <- lme(burrow_count~treatment + mean_air_temp, random= ~1|replicate, method = 'ML', data=gc_mod_df)
+model5_droptreat <- lme(burrow_count~mean_air_temp, random= ~1|replicate, method = 'ML', data=gc_mod_df)
+model5_droptemp <- lme(burrow_count~treatment, random= ~1|replicate, method = 'ML', data=gc_mod_df)
+
+summary(model5)
+summary(model5_droptreat)
+summary(model5_droptemp)
+
+anova(model5,model5_droptemp)
+anova(model5,model5_droptreat)
+#So both of these are significant 
+
+summary(model5)
+
+bc_model_final <-lme(burrow_count~treatment + mean_air_temp, random= ~1|replicate, method = 'REML', data=gc_mod_df)
+hist(residuals(bc_model_final))
+bc_final_residuals <-residuals(bc_model_final, type='pearson')
+bc_final_fitted <-fitted.values(bc_model_final)
+#Checking assumptions 
+plot(bc_final_fitted,bc_final_residuals)
+abline(h=0)
+
+#The rest 
+plot(bc_final_residuals~treatment, data=gc_mod_df)
+abline(h=0)
+plot(bc_final_residuals~mean_air_temp, data=gc_mod_df)
+abline(h=0)
+plot(bc_final_residuals~replicate, data=gc_mod_df)
+abline(h=0)
+
+summary(bc_model_final)
+#Comapct is sig dif 
+#Rake is not sig dif 
+#MD is highly not sig dif 
+#Need to fix air temp?
+
