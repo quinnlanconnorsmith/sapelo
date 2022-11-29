@@ -166,7 +166,8 @@ plot(mod1, ask=F)
 #Following bee code 
 gc_mod_df <- read_csv('gc_glmm.csv') %>% 
   mutate(replicate = as.factor(replicate),
-         treatment= as.factor(treatment))
+         treatment= as.factor(treatment),
+         site = as.factor(site))
 
 model1 <- lm(burrow_count~replicate, data=gc_mod_df)
 summary(model1)
@@ -242,8 +243,8 @@ abline(h=0)
 
 summary(bc_model_final)
 #Comapct is sig dif 
-#Rake is not sig dif 
-#MD is highly not sig dif 
+#Rake is sig dif 
+#MD is  not sig dif 
 #Need to fix air temp?
 
 var_rep_resid <- VarCorr(bc_model_final)
@@ -329,3 +330,36 @@ bd_var_resid <- as.numeric(bd_var_rep_resid[2])
 
 bd_var_rep/(bd_var_rep + bd_var_resid)
 #Correlation is low (0.12)
+
+####Goofin####
+
+goof <-lme(burrow_count~treatment + mean_air_temp + mean_baro + mean_PAR + mean_humidity, random= ~1|replicate, method = 'ML', data=gc_mod_df)
+summary(goof)
+
+goof_dropPAR <-lme(burrow_count~treatment + mean_air_temp + mean_baro + mean_humidity, random= ~1|replicate, method = 'ML', data=gc_mod_df)
+summary(goof_dropPAR)
+
+anova(goof, goof_dropPAR)
+
+goof_drophum <-lme(burrow_count~treatment + mean_air_temp + mean_baro, random= ~1|replicate, method = 'ML', data=gc_mod_df)
+summary(goof_drophum)
+
+#Currently treating each group as a 'replicate' 
+#e.g. plots 1-4 are replicate 1
+#does each plot need it's own replicate? 
+
+#Trying individual plot things 
+lmsite <- lm(burrow_count~site, data=gc_mod_df)
+summary(lmsite)
+rsite <- bc_model_final <-lme(burrow_count~treatment + mean_air_temp, random= ~1|site, method = 'REML', data=gc_mod_df)
+summary(rsite)
+gls_model3 <- gls(burrow_count~treatment + mean_air_temp, data=gc_mod_df)
+anova(gls_model3, rsite)
+
+
+goof2 <- lme(burrow_count~treatment, random= ~1|replicate, method = 'REML', data=gc_mod_df)
+summary(goof2)
+
+goof3 <- lme(burrow_count~treatment, random= ~1|site, method = 'REML', data=gc_mod_df)
+summary(goof3)
+
