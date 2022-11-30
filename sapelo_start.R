@@ -131,6 +131,14 @@ gc_sapelo_22 <- leaflet(data = gc_sites_map) %>%
   addCircleMarkers(~Longitude, ~Latitude, popup = ~as.character(Site), radius=1, fillOpacity=0.9, color="blue")
 gc_sapelo_22
 
+gc_sites_map_n <- read.csv("gc_sites_fix_north.csv", header=T)
+
+gc_sapelo_22_n <- leaflet(data = gc_sites_map_n) %>% 
+  addTiles(group="Map") %>%
+  addProviderTiles("Esri.WorldImagery", group = "Satellite") %>%
+  addCircleMarkers(~Longitude, ~Latitude, popup = ~as.character(Site), radius=1, fillOpacity=0.9, color="blue")
+gc_sapelo_22_n
+
 
 
 ####Model Play####
@@ -346,9 +354,10 @@ summary(goof_drophum)
 
 #Currently treating each group as a 'replicate' 
 #e.g. plots 1-4 are replicate 1
-#does each plot need it's own replicate? 
+#Correct way 
 
 #Trying individual plot things 
+#Don't do this 
 lmsite <- lm(burrow_count~site, data=gc_mod_df)
 summary(lmsite)
 rsite <- bc_model_final <-lme(burrow_count~treatment + mean_air_temp, random= ~1|site, method = 'REML', data=gc_mod_df)
@@ -362,4 +371,7 @@ summary(goof2)
 
 goof3 <- lme(burrow_count~treatment, random= ~1|site, method = 'REML', data=gc_mod_df)
 summary(goof3)
+
+
+##Compare to first day burrow count##
 
